@@ -34,6 +34,9 @@ If you are using an older version, please refresh Discord first.
 <img width="1622" height="926" alt="2" src="https://github.com/user-attachments/assets/9ca790c9-6c19-4008-ad67-b4b533bfc5a4" />
 
 
+<img width="269" height="588" alt="3" src="https://github.com/user-attachments/assets/c7703bfa-005b-4e27-81ea-76a34b646f8b" />
+
+
 ### 📜 The Code
 
 ```javascript
