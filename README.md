@@ -27,6 +27,13 @@ If you are using an older version, please refresh Discord first.
 
 ---
 
+<img width="1919" height="943" alt="1" src="https://github.com/user-attachments/assets/8b05d45d-5155-4174-a114-e89241309fbe" />
+
+
+
+<img width="1622" height="926" alt="2" src="https://github.com/user-attachments/assets/9ca790c9-6c19-4008-ad67-b4b533bfc5a4" />
+
+
 ### 📜 The Code
 
 ```javascript
