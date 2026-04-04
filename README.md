@@ -1,4 +1,4 @@
-# 🌿 The Last Meadow - Ultimate Auto GUI
+# 🌿 The Last Meadow - Ultimate Auto GUI (auto farm)
 
 This is the **best and only script** you will ever need to automate the Discord mini-game "The Last Meadow".  
 It is highly optimized, ultra-fast, and features a literal "DOM Hack" to solve memory games instantly.
