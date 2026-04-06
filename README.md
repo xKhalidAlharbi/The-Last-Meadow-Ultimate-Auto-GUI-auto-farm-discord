@@ -237,7 +237,7 @@ function startBattle() { stopBattle(); btState = BTS.IDLE; const lp = () => { ba
 function stopBattle() { clearTimeout(btTimer); btTimer = null; unlockNav("battle"); btState = BTS.IDLE; btBusy = false; }
 
 // ════════════════════════════════════════════
-// ── HEAL GAME ENGINE (NEW SMART LOGIC) ──
+// ── HEAL GAME ENGINE ──
 // ════════════════════════════════════════════
 function getHealGrid() {
     const grids = document.querySelectorAll('[class*="grid__"]');
@@ -290,29 +290,22 @@ async function healCardSolve() {
     if (!cards || cards.length < 6) return false;
     const totalCards = cards.length;
     let memory = {}, matched = new Set();
-    
     for (let round = 0; round < 50 && hlOn; round++) {
         const freshCards = getHealGrid() || cards;
         freshCards.forEach((c, i) => { if (isCardMatched(c)) matched.add(i); });
         const sc = readHealScore();
         if (sc && sc.cur >= sc.max) return true;
         if (matched.size >= totalCards) return true;
-        
         const unmatched = [];
         for (let i = 0; i < freshCards.length; i++) if (!matched.has(i)) unmatched.push(i);
         if (unmatched.length === 0) return true;
-        
         const groups = {};
         for (const [idx, key] of Object.entries(memory)) {
             const i = parseInt(idx); if (matched.has(i)) continue;
             if (!groups[key]) groups[key] = []; groups[key].push(i);
         }
-        
-        // Priority 1: Do we know 3 of a kind?
         let triplet = null;
-        for (const [key, indices] of Object.entries(groups)) { 
-            if (indices.length >= 3) { triplet = indices.slice(0, 3); break; } 
-        }
+        for (const [key, indices] of Object.entries(groups)) { if (indices.length >= 3) { triplet = indices.slice(0, 3); break; } }
         if (triplet) {
             for (const idx of triplet) { if (!hlOn) return false; reactClick(freshCards[idx]); await sleep(300); }
             await sleep(1200);
@@ -321,10 +314,7 @@ async function healCardSolve() {
             if (!anyMatched) { triplet.forEach(idx => delete memory[idx]); await sleep(800); }
             continue;
         }
-        
         const unknown = unmatched.filter(i => memory[i] === undefined);
-        
-        // Priority 2 (NEW): If we have >= 3 unknowns, EXPLORE THEM FIRST! (Ignore pairs for now)
         if (unknown.length >= 3) {
             const batch = unknown.slice(0, 3);
             for (const idx of batch) {
@@ -338,13 +328,8 @@ async function healCardSolve() {
             batch.forEach(idx => { if (idx < vc.length && isCardMatched(vc[idx])) { matched.add(idx); delete memory[idx]; } });
             continue;
         }
-        
-        // Priority 3: Endgame. If we have < 3 unknowns, we MUST use our pairs + the remaining unknowns.
         let pairKey = null, pairIndices = null;
-        for (const [key, indices] of Object.entries(groups)) { 
-            if (indices.length === 2) { pairKey = key; pairIndices = indices; break; } 
-        }
-        
+        for (const [key, indices] of Object.entries(groups)) { if (indices.length === 2) { pairKey = key; pairIndices = indices; break; } }
         if (pairKey && pairIndices && unknown.length > 0) {
             for (const idx of pairIndices) { reactClick(freshCards[idx]); await sleep(250); }
             const unknownIdx = unknown[0];
@@ -356,8 +341,6 @@ async function healCardSolve() {
             [...pairIndices, unknownIdx].forEach(idx => { if (idx < vc2.length && isCardMatched(vc2[idx])) { matched.add(idx); delete memory[idx]; } });
             continue;
         }
-        
-        // Fallback for the very rare edge case where we just click whatever is left
         if (unknown.length > 0) {
             const batch = unknown.slice(0, 3);
             for (const idx of batch) {
@@ -371,7 +354,6 @@ async function healCardSolve() {
             batch.forEach(idx => { if (idx < vc.length && isCardMatched(vc[idx])) { matched.add(idx); delete memory[idx]; } });
             continue;
         }
-        
         if (unknown.length === 0 && !triplet) { memory = {}; await sleep(500); }
     }
     const fs = readHealScore(); return fs && fs.cur >= fs.max;
@@ -423,47 +405,249 @@ function startCraft() { stopCraft(); crState = CS.IDLE; const lp = () => { craft
 function stopCraft() { clearTimeout(crTimer); crTimer = null; unlockNav("craft"); crState = CS.IDLE; crBusy = false; }
 
 // ════════════════════════════════════════════
-// ── AUTO DEFENCE & AUTO TARGET ──
+// ── AUTO DEFENCE ──
 // ════════════════════════════════════════════
 function startAutoDf() {
     if (!originalWidth) originalWidth = window.innerWidth;
-    Object.defineProperty(window, 'innerWidth', { get: function() { return 190; }, configurable: true }); window.dispatchEvent(new Event('resize'));
+    Object.defineProperty(window, 'innerWidth', { get: function() { return 190; }, configurable: true });
+    window.dispatchEvent(new Event('resize'));
     if (mouseLockerInterval) clearInterval(mouseLockerInterval);
     mouseLockerInterval = setInterval(() => {
         const game = document.querySelector('[class*="game_"]'); if (!game) return;
         const fakeMouseOptions = { clientX: 85, clientY: window.innerHeight - 100, bubbles: true, cancelable: true, view: window };
-        const mouseEvent = new MouseEvent('mousemove', fakeMouseOptions); const pointerEvent = new PointerEvent('pointermove', { ...fakeMouseOptions, pointerId: 1 });
-        game.dispatchEvent(mouseEvent); game.dispatchEvent(pointerEvent); document.dispatchEvent(mouseEvent); document.dispatchEvent(pointerEvent);
+        const mouseEvent = new MouseEvent('mousemove', fakeMouseOptions);
+        const pointerEvent = new PointerEvent('pointermove', { ...fakeMouseOptions, pointerId: 1 });
+        game.dispatchEvent(mouseEvent); game.dispatchEvent(pointerEvent);
+        document.dispatchEvent(mouseEvent); document.dispatchEvent(pointerEvent);
     }, 16);
 }
 function stopAutoDf() {
     if (originalWidth) { Object.defineProperty(window, 'innerWidth', { get: function() { return originalWidth; }, configurable: true }); window.dispatchEvent(new Event('resize')); }
     if (mouseLockerInterval) { clearInterval(mouseLockerInterval); mouseLockerInterval = null; }
 }
-function startAutoTarget() {
-    if (!document.getElementById('cheatStyleTarget')) {
-        let cheatStyle = document.createElement('style'); cheatStyle.id = 'cheatStyleTarget';
-        cheatStyle.innerHTML = `div[class*="targetContainer_"] { left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) scale(1.5) !important; transition: none !important; z-index: 9999 !important; }`;
-        document.head.appendChild(cheatStyle);
+
+// ════════════════════════════════════════════
+// ── AUTO TARGET - استراتيجية جديدة كليًا ──
+// ════════════════════════════════════════════
+
+// دالة لإيجاد الـ target container بكل الطرق الممكنة
+function findTargetContainer() {
+    // طريقة 1: البحث بـ class يحتوي على targetContainer
+    let el = document.querySelector('[class*="targetContainer"]');
+    if (el) return el;
+    // طريقة 2: البحث عبر الـ game container
+    const game = document.querySelector('[class*="game_"]') || document.querySelector('[class*="game__"]');
+    if (game) {
+        const children = game.querySelectorAll('div');
+        for (const child of children) {
+            if (child.className && child.className.includes && child.className.includes('target')) return child;
+        }
     }
+    // طريقة 3: البحث بالـ style (left, top, transform كخاصية)
+    const allDivs = document.querySelectorAll('div[style*="transform: scale"]');
+    for (const div of allDivs) {
+        if (div.style.left && div.style.top && div.style.transform) {
+            const parent = div.closest('[class*="game"]') || div.closest('[class*="container"]');
+            if (parent) return div;
+        }
+    }
+    return null;
+}
+
+// دالة للحصول على React Fiber من عنصر DOM
+function getReactFiber(el) {
+    if (!el) return null;
+    const key = Object.keys(el).find(k =>
+        k.startsWith('__reactFiber') ||
+        k.startsWith('__reactInternalInstance') ||
+        k.startsWith('_reactFiber')
+    );
+    return key ? el[key] : null;
+}
+
+// دالة للحصول على React Props من عنصر DOM
+function getReactProps(el) {
+    if (!el) return null;
+    const key = Object.keys(el).find(k =>
+        k.startsWith('__reactProps') ||
+        k.startsWith('__reactEventHandlers')
+    );
+    return key ? el[key] : null;
+}
+
+// دالة للبحث عن onClick في شجرة React Fiber
+function findReactHandler(el, eventName) {
+    try {
+        let fiber = getReactFiber(el);
+        let depth = 0;
+        while (fiber && depth < 20) {
+            const props = fiber.memoizedProps || fiber.pendingProps;
+            if (props) {
+                if (props[eventName]) return { handler: props[eventName], fiber };
+                if (props.onClick && eventName === 'onClick') return { handler: props.onClick, fiber };
+                if (props.onPointerDown && eventName === 'onPointerDown') return { handler: props.onPointerDown, fiber };
+                if (props.onMouseDown && eventName === 'onMouseDown') return { handler: props.onMouseDown, fiber };
+            }
+            fiber = fiber.return;
+            depth++;
+        }
+    } catch(e) {}
+    return null;
+}
+
+// إنشاء synthetic event لـ React
+function createSyntheticEvent(el, eventType, cx, cy) {
+    const nativeEvent = new MouseEvent(eventType, {
+        bubbles: true, cancelable: true, view: window,
+        clientX: cx, clientY: cy,
+        screenX: cx, screenY: cy,
+        button: 0, buttons: 1
+    });
+    return nativeEvent;
+}
+
+// الاستراتيجية الجديدة: تعديل الـ state مباشرة + CSS + أحداث متعددة
+function startAutoTarget() {
+    // 1. إضافة CSS لتثبيت الهدف في المنتصف
+    let styleEl = document.getElementById('cheatStyleTarget');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'cheatStyleTarget';
+        styleEl.innerHTML = `
+            [class*="targetContainer"] {
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) scale(1) !important;
+                transition: none !important;
+                z-index: 9999 !important;
+                pointer-events: all !important;
+            }
+            [class*="targetContainer"] * {
+                pointer-events: all !important;
+            }
+        `;
+        document.head.appendChild(styleEl);
+    }
+
     if (tgInterval) clearInterval(tgInterval);
+
     tgInterval = setInterval(() => {
-        const target = document.querySelector('div[class*="targetContainer_"]');
+        const target = findTargetContainer();
         if (!target) return;
+
+        // تحديث CSS يدوياً في كل دورة للتأكد
+        target.style.setProperty('left', '50%', 'important');
+        target.style.setProperty('top', '50%', 'important');
+        target.style.setProperty('transform', 'translate(-50%, -50%) scale(1)', 'important');
+        target.style.setProperty('transition', 'none', 'important');
+        target.style.setProperty('pointer-events', 'all', 'important');
+
         const rect = target.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
-        const cx = rect.left + rect.width / 2; const cy = rect.top + rect.height / 2;
-        const o = { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy, button: 0 };
-        target.dispatchEvent(new PointerEvent("pointerdown", { ...o, pointerId: 1 }));
-        target.dispatchEvent(new MouseEvent("mousedown", o));
-        target.dispatchEvent(new PointerEvent("pointerup", { ...o, pointerId: 1 }));
-        target.dispatchEvent(new MouseEvent("mouseup", o));
-        target.dispatchEvent(new MouseEvent("click", o));
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+
+        // البحث عن كل العناصر تحت الهدف
+        const elements = document.elementsFromPoint(cx, cy);
+
+        // محاولة 1: تشغيل React handlers مباشرة
+        for (const el of elements) {
+            try {
+                // محاولة onClick مباشرة
+                const props = getReactProps(el);
+                if (props) {
+                    if (props.onClick) {
+                        try {
+                            const evt = createSyntheticEvent(el, 'click', cx, cy);
+                            props.onClick(evt);
+                        } catch(e) {}
+                    }
+                    if (props.onPointerDown) {
+                        try {
+                            const evt = new PointerEvent('pointerdown', {
+                                bubbles: true, cancelable: true, view: window,
+                                clientX: cx, clientY: cy, pointerId: 1,
+                                pointerType: 'mouse', isPrimary: true, pressure: 0.5, buttons: 1
+                            });
+                            props.onPointerDown(evt);
+                        } catch(e) {}
+                    }
+                    if (props.onMouseDown) {
+                        try {
+                            const evt = createSyntheticEvent(el, 'mousedown', cx, cy);
+                            props.onMouseDown(evt);
+                        } catch(e) {}
+                    }
+                }
+            } catch(e) {}
+        }
+
+        // محاولة 2: إرسال أحداث DOM كاملة لكل العناصر
+        const baseOpts = {
+            bubbles: true, cancelable: true, composed: true, view: window,
+            clientX: cx, clientY: cy,
+            screenX: (window.screenX || 0) + cx,
+            screenY: (window.screenY || 0) + cy,
+            button: 0, buttons: 1
+        };
+        const pointerOpts = {
+            ...baseOpts,
+            pointerId: 1, pointerType: 'mouse',
+            isPrimary: true, pressure: 0.5,
+            width: 1, height: 1, tiltX: 0, tiltY: 0
+        };
+
+        // إرسال للـ target نفسه
+        try { target.dispatchEvent(new PointerEvent('pointermove', { ...pointerOpts, pressure: 0 })); } catch(e) {}
+        try { target.dispatchEvent(new MouseEvent('mousemove', baseOpts)); } catch(e) {}
+        try { target.dispatchEvent(new PointerEvent('pointerdown', pointerOpts)); } catch(e) {}
+        try { target.dispatchEvent(new MouseEvent('mousedown', baseOpts)); } catch(e) {}
+        try { target.dispatchEvent(new PointerEvent('pointerup', { ...pointerOpts, pressure: 0 })); } catch(e) {}
+        try { target.dispatchEvent(new MouseEvent('mouseup', baseOpts)); } catch(e) {}
+        try { target.dispatchEvent(new MouseEvent('click', baseOpts)); } catch(e) {}
+
+        // إرسال لكل العناصر تحت الهدف
+        for (const el of elements) {
+            if (el === document.body || el === document.documentElement || el === document || el === target) continue;
+            try { el.dispatchEvent(new PointerEvent('pointerdown', pointerOpts)); } catch(e) {}
+            try { el.dispatchEvent(new MouseEvent('mousedown', baseOpts)); } catch(e) {}
+            try { el.dispatchEvent(new PointerEvent('pointerup', { ...pointerOpts, pressure: 0 })); } catch(e) {}
+            try { el.dispatchEvent(new MouseEvent('mouseup', baseOpts)); } catch(e) {}
+            try { el.dispatchEvent(new MouseEvent('click', baseOpts)); } catch(e) {}
+        }
+
+        // محاولة 3: البحث عن React handlers في شجرة الـ fiber وتنفيذها
+        try {
+            const result = findReactHandler(target, 'onClick');
+            if (result && result.handler) {
+                const fakeEvent = createSyntheticEvent(target, 'click', cx, cy);
+                result.handler(fakeEvent);
+            }
+        } catch(e) {}
+
+        // محاولة 4: استخدام __REACT_DEVTOOLS_GLOBAL_HOOK__ للوصول للـ store
+        try {
+            const hook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+            if (hook && hook.getFiberRoots) {
+                // هذا للتشخيص فقط
+            }
+        } catch(e) {}
+
     }, 50);
 }
+
 function stopAutoTarget() {
-    let s = document.getElementById('cheatStyleTarget'); if (s) s.remove();
-    if (tgInterval) clearInterval(tgInterval); tgInterval = null;
+    const s = document.getElementById('cheatStyleTarget');
+    if (s) s.remove();
+    if (tgInterval) { clearInterval(tgInterval); tgInterval = null; }
+    // إزالة الـ inline styles المضافة
+    const target = findTargetContainer();
+    if (target) {
+        target.style.removeProperty('left');
+        target.style.removeProperty('top');
+        target.style.removeProperty('transform');
+        target.style.removeProperty('transition');
+        target.style.removeProperty('pointer-events');
+    }
 }
 
 // ════════════════════════════════════════════
@@ -502,13 +686,7 @@ function renderBattle() {
     if (getResourcePopup()) { setText(btTextEl, tx("noResources")); setCSS(btIconEl,"filter","none"); setCSS(btn,"background","#00c78b"); setCSS(btn,"color","#1a1a1a"); return; }
     if (btState === BTS.WAITING) {
         const cd = readBattleCountdown();
-        if (cd !== null && btTotalWait > 0) {
-            const p = Math.min(100, (Date.now()-btWaitStart)/1000/btTotalWait*100);
-            setText(btTextEl, fmtTime(cd));
-            setCSS(btIconEl,"filter","invert(1)");
-            setCSS(btn,"background",`linear-gradient(90deg,#00c78b ${p}%,#1a1a1a ${p}%)`);
-            setCSS(btn,"color","white"); return;
-        }
+        if (cd !== null && btTotalWait > 0) { const p = Math.min(100, (Date.now()-btWaitStart)/1000/btTotalWait*100); setText(btTextEl, fmtTime(cd)); setCSS(btIconEl,"filter","invert(1)"); setCSS(btn,"background",`linear-gradient(90deg,#00c78b ${p}%,#1a1a1a ${p}%)`); setCSS(btn,"color","white"); return; }
         setText(btTextEl, tx("battleIdle")); setCSS(btIconEl,"filter","none"); setCSS(btn,"background","#00c78b"); setCSS(btn,"color","#1a1a1a"); return;
     }
     const labels = {[BTS.IDLE]:"battleIdle",[BTS.ENTERING]:"battleEntering",[BTS.ACTIVE]:"battleActive",[BTS.EXITING]:"battleExiting"};
@@ -527,8 +705,18 @@ function renderHeal() {
     setCSS(hlIconEl,"filter","none"); setCSS(btn,"background","#00c78b"); setCSS(btn,"color","#1a1a1a");
 }
 
-function renderAutoDf() { const btn = document.getElementById("autoDfBtn"); if (!btn || !autoDfIconEl || !autoDfTextEl) return; setText(autoDfTextEl, tx("autoDefence")); if (autoDfOn) { setCSS(autoDfIconEl,"filter","none"); setCSS(btn,"background","#00c78b"); setCSS(btn,"color","#1a1a1a"); } else { setCSS(autoDfIconEl,"filter","invert(1)"); setCSS(btn,"background","#1a1a1a"); setCSS(btn,"color","white"); } }
-function renderAutoTg() { const btn = document.getElementById("autoTgBtn"); if (!btn || !autoTgIconEl || !autoTgTextEl) return; setText(autoTgTextEl, tx("autoTarget")); if (autoTgOn) { setCSS(autoTgIconEl,"filter","none"); setCSS(btn,"background","#00c78b"); setCSS(btn,"color","#1a1a1a"); } else { setCSS(autoTgIconEl,"filter","invert(1)"); setCSS(btn,"background","#1a1a1a"); setCSS(btn,"color","white"); } }
+function renderAutoDf() {
+    const btn = document.getElementById("autoDfBtn"); if (!btn || !autoDfIconEl || !autoDfTextEl) return;
+    setText(autoDfTextEl, tx("autoDefence"));
+    if (autoDfOn) { setCSS(autoDfIconEl,"filter","none"); setCSS(btn,"background","#00c78b"); setCSS(btn,"color","#1a1a1a"); }
+    else { setCSS(autoDfIconEl,"filter","invert(1)"); setCSS(btn,"background","#1a1a1a"); setCSS(btn,"color","white"); }
+}
+function renderAutoTg() {
+    const btn = document.getElementById("autoTgBtn"); if (!btn || !autoTgIconEl || !autoTgTextEl) return;
+    setText(autoTgTextEl, tx("autoTarget"));
+    if (autoTgOn) { setCSS(autoTgIconEl,"filter","none"); setCSS(btn,"background","#00c78b"); setCSS(btn,"color","#1a1a1a"); }
+    else { setCSS(autoTgIconEl,"filter","invert(1)"); setCSS(btn,"background","#1a1a1a"); setCSS(btn,"color","white"); }
+}
 
 // ════════════════════════════════════════════
 // ── LANGUAGE & GUI ──
@@ -577,7 +765,7 @@ function showLanguageModal(isFirstTime) {
             if (isFirstTime) { createMainGUI(); } else { const m = document.getElementById("meadowAutoGUI"); if(m) m.style.display = "block"; updateLang(); }
         });
         btn.addEventListener('mouseover', () => btn.style.background = "#00c78b");
-        btn.addEventListener('mouseout', () => btn.style.background = "white");
+        btn.addEventListener('mouseout',  () => btn.style.background = "white");
     });
 }
 
@@ -649,14 +837,14 @@ function createMainGUI() {
         if (crOn) startCraft();
     });
 
-    const adv   = makeBtn("advBtn",    ICONS.adventure, btnBox); adv.btn.style.minHeight = "auto";
-    const craft  = makeBtn("craftBtn", ICONS.craft,     btnBox); crIconEl = craft.img; crTextEl = craft.span;
-    const battle = makeBtn("battleBtn",ICONS.battle,    btnBox); btIconEl = battle.img; btTextEl = battle.span;
-    const heal   = makeBtn("healBtn",  ICONS.heal,      btnBox); hlIconEl = heal.img;   hlTextEl = heal.span;
+    const adv    = makeBtn("advBtn",    ICONS.adventure, btnBox); adv.btn.style.minHeight = "auto";
+    const craft  = makeBtn("craftBtn",  ICONS.craft,     btnBox); crIconEl = craft.img; crTextEl = craft.span;
+    const battle = makeBtn("battleBtn", ICONS.battle,    btnBox); btIconEl = battle.img; btTextEl = battle.span;
+    const heal   = makeBtn("healBtn",   ICONS.heal,      btnBox); hlIconEl = heal.img;   hlTextEl = heal.span;
     heal.img.style.filter = "invert(1) sepia(1) saturate(5) hue-rotate(80deg)";
-    const autoDf = makeBtn("autoDfBtn",ICONS.battle,    btnBox); autoDfIconEl = autoDf.img; autoDfTextEl = autoDf.span;
-    const autoTg = makeBtn("autoTgBtn",ICONS.craft,     btnBox); autoTgIconEl = autoTg.img; autoTgTextEl = autoTg.span;
-    const wg     = makeBtn("wgBtn",    ICONS.wrongGame,  btnBox); wg.btn.style.minHeight = "auto"; wg.btn.style.background = "#f5c400"; wg.btn.style.color = "#1a1a1a"; wg.img.style.filter = "none";
+    const autoDf = makeBtn("autoDfBtn", ICONS.battle,    btnBox); autoDfIconEl = autoDf.img; autoDfTextEl = autoDf.span;
+    const autoTg = makeBtn("autoTgBtn", ICONS.craft,     btnBox); autoTgIconEl = autoTg.img; autoTgTextEl = autoTg.span;
+    const wg     = makeBtn("wgBtn",     ICONS.wrongGame, btnBox); wg.btn.style.minHeight = "auto"; wg.btn.style.background = "#f5c400"; wg.btn.style.color = "#1a1a1a"; wg.img.style.filter = "none";
 
     let isDragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
 
@@ -666,34 +854,23 @@ function createMainGUI() {
         if (e.target.closest("#langFlagBtn")) return;
         if (e.target.id === "settingsBtn") return;
         if (e.target.id === "minToggleBtn") return;
-
         e.preventDefault();
-        isDragging = true;
-        dragging = true;
+        isDragging = true; dragging = true;
         header.style.cursor = "grabbing";
-
-        startX = e.clientX;
-        startY = e.clientY;
+        startX = e.clientX; startY = e.clientY;
         startLeft = parseInt(gui.style.left) || gui.offsetLeft;
         startTop  = parseInt(gui.style.top)  || gui.offsetTop;
-
-        header.setPointerCapture && header.setPointerCapture(e.pointerId);
     });
 
     window.addEventListener("mousemove", function(e) {
-        if (!isDragging) return;
-        if (!e.isTrusted) return;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        gui.style.left = (startLeft + dx) + "px";
-        gui.style.top  = (startTop  + dy) + "px";
+        if (!isDragging || !e.isTrusted) return;
+        gui.style.left = (startLeft + e.clientX - startX) + "px";
+        gui.style.top  = (startTop  + e.clientY - startY) + "px";
     });
 
     window.addEventListener("mouseup", function(e) {
-        if (!isDragging) return;
-        if (!e.isTrusted) return;
-        isDragging = false;
-        dragging = false;
+        if (!isDragging || !e.isTrusted) return;
+        isDragging = false; dragging = false;
         header.style.cursor = "grab";
     });
 
@@ -702,8 +879,7 @@ function createMainGUI() {
     document.getElementById("langFlagBtn").addEventListener("mouseout",  function() { this.style.background="rgba(0,0,0,0.2)"; });
 
     document.getElementById("minToggleBtn").addEventListener("click", function(e) {
-        e.stopPropagation();
-        isMinimized = !isMinimized;
+        e.stopPropagation(); isMinimized = !isMinimized;
         if (isMinimized) { content.style.display = "none"; this.innerText = "+"; gui.style.paddingBottom = "0"; }
         else { content.style.display = "block"; this.innerText = "−"; gui.style.paddingBottom = "10px"; }
     });
@@ -714,22 +890,25 @@ function createMainGUI() {
     });
 
     adv.btn.addEventListener("click",   () => { advOn = !advOn; setCSS(adv.img,"filter",advOn?"none":"invert(1)"); setCSS(adv.btn,"background",advOn?"#00c78b":"#1a1a1a"); setCSS(adv.btn,"color",advOn?"#1a1a1a":"white"); advOn ? startAdv() : stopAdv(); });
-    craft.btn.addEventListener("click", () => { crOn = !crOn;  crOn  ? startCraft()  : stopCraft(); });
-    battle.btn.addEventListener("click",() => { btOn = !btOn;  btOn  ? startBattle() : stopBattle(); });
-    heal.btn.addEventListener("click",  () => { hlOn = !hlOn;  hlOn  ? startHeal()   : stopHeal(); });
-    autoDf.btn.addEventListener("click",() => { autoDfOn = !autoDfOn; autoDfOn ? startAutoDf()     : stopAutoDf(); });
-    autoTg.btn.addEventListener("click",() => { autoTgOn = !autoTgOn; autoTgOn ? startAutoTarget()  : stopAutoTarget(); });
-    wg.btn.addEventListener("click",    do500Clicks);
+    craft.btn.addEventListener("click", () => { crOn = !crOn;   crOn   ? startCraft()       : stopCraft(); });
+    battle.btn.addEventListener("click",() => { btOn = !btOn;   btOn   ? startBattle()      : stopBattle(); });
+    heal.btn.addEventListener("click",  () => { hlOn = !hlOn;   hlOn   ? startHeal()        : stopHeal(); });
+    autoDf.btn.addEventListener("click",() => { autoDfOn = !autoDfOn; autoDfOn ? startAutoDf()    : stopAutoDf(); });
+    autoTg.btn.addEventListener("click",() => { autoTgOn = !autoTgOn; autoTgOn ? startAutoTarget() : stopAutoTarget(); });
+    wg.btn.addEventListener("click", do500Clicks);
 
     updateLang();
-    window._renderInterval = setInterval(() => { renderCraft(); renderBattle(); renderHeal(); renderAutoDf(); renderAutoTg(); }, 200);
+    window._renderInterval = setInterval(() => {
+        renderCraft(); renderBattle(); renderHeal(); renderAutoDf(); renderAutoTg();
+    }, 200);
 }
 
 showLanguageModal(true);
 
 window._meadowCleanup = () => {
     stopAdv(); stopCraft(); stopBattle(); stopHeal(); stopAutoDf(); stopAutoTarget();
-    clearInterval(clkInterval); if (window._renderInterval) clearInterval(window._renderInterval);
+    clearInterval(clkInterval);
+    if (window._renderInterval) clearInterval(window._renderInterval);
     crOn = advOn = btOn = hlOn = autoDfOn = autoTgOn = false;
     const g = document.getElementById("meadowAutoGUI"); if (g) g.remove();
     const l = document.getElementById("meadowLangModal"); if (l) l.remove();
