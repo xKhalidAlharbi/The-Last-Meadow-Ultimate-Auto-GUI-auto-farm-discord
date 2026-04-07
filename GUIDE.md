@@ -76,15 +76,24 @@ Use this when you want the repo version without manually recopying the full scri
 - `Wrong Game`: runs the rapid click helper for the alternate click-based game.
 - `Stop All`: stops all running automation loops at once.
 - `Reset Position`: moves the GUI back to the default screen position from the settings panel.
+- `Transparency`: fades the GUI so more of the game remains visible.
 - `Adventure (ms)`: lower is faster for the Adventure loop.
 - `Craft (ms)`: adjusts the timing used by the Craft loop.
 - The script remembers language, GUI position, minimized state, and speed slider values in local storage.
+
+## Shortcuts
+
+- `Ctrl + Alt + S`: Stop All
+- `Ctrl + Alt + R`: Reset Position
+- `Ctrl + Alt + M`: Minimize or expand the GUI
+- `Ctrl + Alt + T`: Toggle Transparency Mode
 
 ## Console Helpers
 
 - `stopMeadowScript()`: stops the script and removes the GUI.
 - `stopMeadowAll()`: stops active automation without removing the GUI.
 - `resetMeadowGUIPosition()`: moves the GUI back to its default position.
+- `toggleMeadowTransparency()`: toggles Transparency Mode.
 
 ## Updating
 

@@ -20,6 +20,8 @@ It keeps the fast GUI workflow from the original release, but the source now liv
 - **Lightning Fast Crafting:** Solves crafting sequences through the GUI script.
 - **Adventure Auto Loop:** Adjustable speed down to very low delay values.
 - **Stop All Control:** Quickly shuts down every running automation loop.
+- **Shortcuts:** Use keyboard shortcuts for Stop All, Reset Position, Minimize, and Transparency.
+- **Transparency Mode:** Fade the GUI when you want more of the game visible.
 - **Saved Preferences:** Remembers language, speed sliders, minimized state, and GUI position.
 - **Separated Source File:** The main script is now stored in [Script.js](./Script.js).
 
@@ -97,7 +99,7 @@ Full history is also available in [CHANGELOG.md](./CHANGELOG.md).
 <summary>Show full changelog</summary>
 
 #### Unreleased
-- Added GUI version label, saved preferences, Stop All, and Reset Position controls on the testing branch.
+- Added GUI version label, saved preferences, Stop All, Reset Position, keyboard shortcuts, and Transparency Mode controls on the testing branch.
 
 #### 2026-04-07
 - `4e7a178` Fixed the auto-loader URL to use the fork's jsDelivr path.

@@ -4,7 +4,7 @@ This project does not use tagged releases yet. Until it does, this file records 
 
 ## Unreleased
 
-- Added GUI version label, saved preferences, Stop All, and Reset Position controls on the testing branch.
+- Added GUI version label, saved preferences, Stop All, Reset Position, keyboard shortcuts, and Transparency Mode controls on the testing branch.
 
 ## 2026-04-07
 

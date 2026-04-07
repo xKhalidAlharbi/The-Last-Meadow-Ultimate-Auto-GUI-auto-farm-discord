@@ -62,7 +62,7 @@ let advOn = false, crOn = false, btOn = false, hlOn = false, autoDfOn = false, a
 let lang = (savedPrefs.lang && LANG_DATA[savedPrefs.lang]) ? savedPrefs.lang : "en";
 let advDelay = clampNumber(savedPrefs.advDelay, 10, 900, 50);
 let crDelay = clampNumber(savedPrefs.crDelay, 300, 800, 520);
-let activeNav = null, isMinimized = !!savedPrefs.isMinimized;
+let activeNav = null, isMinimized = !!savedPrefs.isMinimized, transparentMode = !!savedPrefs.transparentMode;
 
 const CS = { IDLE:0, ENTERING:1, SOLVING:2, EXITING:3, WAITING:4 };
 let crState = CS.IDLE, crTimer = null, crBusy = false, crTotalWait = 0, crWaitStart = 0;
@@ -160,6 +160,55 @@ function stopAllFeatures() {
     activeNav = null;
     renderAdv(); renderCraft(); renderBattle(); renderHeal(); renderAutoDf(); renderAutoTg();
     flashGuiStatus("All stopped");
+}
+function updateTransparencyButton() {
+    const btn = document.getElementById("transparencyBtn");
+    if (!btn) return;
+    btn.textContent = `Transparency: ${transparentMode ? "On" : "Off"}`;
+    btn.style.background = transparentMode ? "#00c78b" : "#fff";
+    btn.style.color = "#1a1a1a";
+}
+function applyTransparencyMode() {
+    const gui = document.getElementById("meadowAutoGUI");
+    if (gui) {
+        gui.style.opacity = transparentMode ? "0.64" : "1";
+        gui.style.backdropFilter = transparentMode ? "blur(2px)" : "";
+    }
+    updateTransparencyButton();
+}
+function toggleTransparencyMode() {
+    transparentMode = !transparentMode;
+    savePrefs({ transparentMode });
+    applyTransparencyMode();
+    flashGuiStatus(`Transparency ${transparentMode ? "on" : "off"}`);
+}
+function setMinimized(next) {
+    isMinimized = !!next;
+    const content = document.getElementById("guiContent");
+    const minBtn = document.getElementById("minToggleBtn");
+    const gui = document.getElementById("meadowAutoGUI");
+    if (content) content.style.display = isMinimized ? "none" : "block";
+    if (minBtn) minBtn.innerText = isMinimized ? "+" : "−";
+    if (gui) gui.style.paddingBottom = isMinimized ? "0" : "10px";
+    savePrefs({ isMinimized });
+}
+function toggleMinimized() {
+    setMinimized(!isMinimized);
+    flashGuiStatus(isMinimized ? "Minimized" : "Expanded");
+}
+function handleGlobalShortcut(e) {
+    if (!e.ctrlKey || !e.altKey || e.repeat) return;
+    const key = e.key.toLowerCase();
+    const actions = {
+        s: stopAllFeatures,
+        r: resetGuiPosition,
+        m: toggleMinimized,
+        t: toggleTransparencyMode
+    };
+    if (!actions[key]) return;
+    e.preventDefault();
+    e.stopPropagation();
+    actions[key]();
 }
 
 function sendKey(key) {
@@ -877,6 +926,9 @@ function createMainGUI() {
     const resetPosBtn = document.createElement("button"); resetPosBtn.id = "resetPositionBtn"; resetPosBtn.textContent = "Reset Position";
     resetPosBtn.style.cssText = "width:100%;margin-top:10px;padding:8px;border:2px solid #1a1a1a;border-radius:6px;background:#fff;color:#1a1a1a;font-weight:bold;cursor:pointer;";
     settingsPanel.appendChild(resetPosBtn);
+    const transparencyBtn = document.createElement("button"); transparencyBtn.id = "transparencyBtn";
+    transparencyBtn.style.cssText = "width:100%;margin-top:8px;padding:8px;border:2px solid #1a1a1a;border-radius:6px;background:#fff;color:#1a1a1a;font-weight:bold;cursor:pointer;";
+    settingsPanel.appendChild(transparencyBtn);
     content.appendChild(settingsPanel);
     gui.appendChild(content);
     document.body.appendChild(gui);
@@ -894,6 +946,7 @@ function createMainGUI() {
         if (crOn) startCraft();
     });
     resetPosBtn.addEventListener("click", resetGuiPosition);
+    transparencyBtn.addEventListener("click", toggleTransparencyMode);
 
     const adv    = makeBtn("advBtn",    ICONS.adventure, btnBox); adv.btn.style.minHeight = "auto";
     const craft  = makeBtn("craftBtn",  ICONS.craft,     btnBox); crIconEl = craft.img; crTextEl = craft.span;
@@ -941,10 +994,7 @@ function createMainGUI() {
     document.getElementById("langFlagBtn").addEventListener("mouseout",  function() { this.style.background="rgba(0,0,0,0.2)"; });
 
     document.getElementById("minToggleBtn").addEventListener("click", function(e) {
-        e.stopPropagation(); isMinimized = !isMinimized;
-        if (isMinimized) { content.style.display = "none"; this.innerText = "+"; gui.style.paddingBottom = "0"; }
-        else { content.style.display = "block"; this.innerText = "−"; gui.style.paddingBottom = "10px"; }
-        savePrefs({ isMinimized });
+        e.stopPropagation(); toggleMinimized();
     });
 
     document.getElementById("settingsBtn").addEventListener("click", function(e) {
@@ -961,11 +1011,9 @@ function createMainGUI() {
     wg.btn.addEventListener("click", do500Clicks);
     stopAllBtn.addEventListener("click", stopAllFeatures);
 
-    if (isMinimized) {
-        content.style.display = "none";
-        document.getElementById("minToggleBtn").innerText = "+";
-        gui.style.paddingBottom = "0";
-    }
+    setMinimized(isMinimized);
+    applyTransparencyMode();
+    window.addEventListener("keydown", handleGlobalShortcut, true);
 
     updateLang();
     window._renderInterval = setInterval(() => {
@@ -978,6 +1026,7 @@ showLanguageModal(true);
 window._meadowCleanup = () => {
     stopAdv(); stopCraft(); stopBattle(); stopHeal(); stopAutoDf(); stopAutoTarget();
     stopClicker();
+    window.removeEventListener("keydown", handleGlobalShortcut, true);
     if (window._renderInterval) clearInterval(window._renderInterval);
     crOn = advOn = btOn = hlOn = autoDfOn = autoTgOn = false;
     const g = document.getElementById("meadowAutoGUI"); if (g) g.remove();
@@ -986,4 +1035,5 @@ window._meadowCleanup = () => {
 window.stopMeadowScript = window._meadowCleanup;
 window.stopMeadowAll = stopAllFeatures;
 window.resetMeadowGUIPosition = resetGuiPosition;
+window.toggleMeadowTransparency = toggleTransparencyMode;
 })();
