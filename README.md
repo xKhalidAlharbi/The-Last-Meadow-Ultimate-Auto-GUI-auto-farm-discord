@@ -17,13 +17,29 @@ It keeps the fast GUI workflow from the original release, but the source now liv
 
 ### 🚀 How to Setup
 
-If you are using an older version, refresh Discord first.
+This script is for the **Discord desktop app**. If you are using an older version, refresh Discord first.
 
 1. Open Discord and press `Ctrl + R`.
-2. Press `Ctrl + Shift + I` or `F12` to open **Developer Tools**.
+2. Press `Ctrl + Shift + I` to open **Developer Tools**.
 3. Open the **Console** tab.
 4. Use either the auto-loader or manual method below.
 5. Select your language and start the features you want.
+
+#### Enable Developer Tools
+
+If `Ctrl + Shift + I` does not open Developer Tools:
+
+1. Fully close Discord from the system tray.
+2. Press `Win + R`, paste `%APPDATA%\discord`, and open `settings.json`.
+3. Add this setting inside the JSON object:
+
+```json
+"DANGEROUS_ENABLE_DEVTOOLS_ONLY_ENABLE_IF_YOU_KNOW_WHAT_YOURE_DOING": true
+```
+
+4. Save the file, reopen Discord, then press `Ctrl + Shift + I`.
+
+Discord **Developer Mode** in settings is not the same as desktop Developer Tools.
 
 #### Auto Loader
 
@@ -71,6 +87,8 @@ Full history is also available in [CHANGELOG.md](./CHANGELOG.md).
 <summary>Show full changelog</summary>
 
 #### 2026-04-07
+- `4e7a178` Fixed the auto-loader URL to use the fork's jsDelivr path.
+- `6579f47` Moved the embedded script into `Script.js` and refreshed the docs.
 - `a02575f` Fixed the settings slider behavior.
 - `a02575f` Fixed Auto Target reliability.
 

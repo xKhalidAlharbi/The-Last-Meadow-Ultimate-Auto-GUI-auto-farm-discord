@@ -4,6 +4,8 @@ This project does not use tagged releases yet. Until it does, this file records 
 
 ## 2026-04-07
 
+- `4e7a178` Fixed the auto-loader URL to use the fork's jsDelivr path.
+- `6579f47` Moved the embedded script into `Script.js` and refreshed the docs.
 - `a02575f` Fixed the settings slider behavior.
 - `a02575f` Fixed Auto Target reliability.
 

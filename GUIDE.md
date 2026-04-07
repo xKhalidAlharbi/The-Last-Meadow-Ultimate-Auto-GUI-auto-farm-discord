@@ -8,11 +8,40 @@ Use the README for the fast path and this guide for a little more detail.
 
 ## Requirements
 
-- Discord desktop app or browser session with "The Last Meadow" available
-- Access to Developer Tools
+- Discord desktop app with "The Last Meadow" available
+- Desktop Developer Tools enabled
 - Permission to paste JavaScript into the console
 
 ## Setup
+
+### Enable Discord desktop Developer Tools
+
+If `Ctrl + Shift + I` already opens Developer Tools, skip this section.
+
+1. Fully close Discord, including from the system tray.
+2. Press `Win + R`.
+3. Paste `%APPDATA%\discord` and press `Enter`.
+4. Open `settings.json` in a text editor.
+5. Add this setting inside the existing JSON object:
+
+```json
+"DANGEROUS_ENABLE_DEVTOOLS_ONLY_ENABLE_IF_YOU_KNOW_WHAT_YOURE_DOING": true
+```
+
+If the setting is not the first item in the file, add a comma before it so the JSON stays valid. Example:
+
+```json
+{
+  "BACKGROUND_COLOR": "#202225",
+  "DANGEROUS_ENABLE_DEVTOOLS_ONLY_ENABLE_IF_YOU_KNOW_WHAT_YOURE_DOING": true
+}
+```
+
+6. Save `settings.json`.
+7. Open Discord again.
+8. Press `Ctrl + Shift + I`, then open the `Console` tab.
+
+Discord **Developer Mode** in settings is different. It helps copy IDs, but it does not open the JavaScript console.
 
 ### Recommended: auto-update loader
 
@@ -29,7 +58,7 @@ Use this when you want the repo version without manually recopying the full scri
 ### Manual setup
 
 1. Refresh Discord with `Ctrl + R`.
-2. Open Developer Tools with `Ctrl + Shift + I` or `F12`.
+2. Open Developer Tools with `Ctrl + Shift + I`.
 3. Open the `Console` tab.
 4. Open [Script.js](./Script.js).
 5. Copy the full file contents.
