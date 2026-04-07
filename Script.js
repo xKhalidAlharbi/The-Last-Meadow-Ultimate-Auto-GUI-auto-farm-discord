@@ -18,6 +18,9 @@ const ICONS = {
     logo: CDN+"c9463738992e8f18a383be2725a5fa11d5f06b8a0820f0325033c086dd9dd649.png"
 };
 const ROT_MAP = {"0":"ArrowUp","90":"ArrowRight","180":"ArrowDown","270":"ArrowLeft"};
+const SCRIPT_VERSION = "2026.04.07-test";
+const STORAGE_KEY = "meadowAutoGUI.settings.v1";
+const DEFAULT_GUI_POS = { top: 100, left: 40 };
 
 const LANG_DATA = {
     en: { name:"English", flag:"🇬🇧", t:{ adventure:"Adventure", craft:"Craft", wrongGame:"Wrong Game", battle:"Battle", heal:"Auto Heal", autoDefence:"Auto Defence", autoTarget:"Auto Target", drag:"Drag to move", speeds:"Speed Settings", advLabel:"Adventure (ms)", craftLabel:"Craft (ms)", speedTip:"Lower = faster", craftIdle:"Waiting", craftEntering:"Opening", craftSolving:"Solving", craftExiting:"Going back", battleIdle:"Waiting", battleEntering:"Opening", battleActive:"In Game", battleExiting:"Going back", healIdle:"Waiting", healEntering:"Opening", healActive:"Healing", healDone:"Victory", healExiting:"Going back", paused:"Paused", done:"Done", noResources:"No resources"} },
@@ -51,11 +54,15 @@ const LANG_DATA = {
     ms: { name:"Bahasa Melayu", flag:"🇲🇾", t:{ adventure:"Pengembaraan", craft:"Kraf", wrongGame:"Permainan Salah", battle:"Pertempuran", heal:"Auto Sembuh", autoDefence:"Pertahanan Auto", autoTarget:"Sasaran Auto", drag:"Seret", speeds:"Kelajuan", advLabel:"Pengembaraan", craftLabel:"Kraf", speedTip:"Rendah = Cepat", craftIdle:"Menunggu", craftEntering:"Membuka", craftSolving:"Menyelesaikan", craftExiting:"Kembali", battleIdle:"Menunggu", battleEntering:"Membuka", battleActive:"Dalam permainan", battleExiting:"Kembali", healIdle:"Menunggu", healEntering:"Membuka", healActive:"Menyembuhkan", healDone:"Kemenangan", healExiting:"Kembali", paused:"Jeda", done:"Selesai", noResources:"Tiada sumber"} },
     bn: { name:"বাংলা", flag:"🇧🇩", t:{ adventure:"অ্যাডভেঞ্চার", craft:"ক্রাফট", wrongGame:"ভুল খেলা", battle:"যুদ্ধ", heal:"অটো সুস্থ", autoDefence:"অটো ডিফেন্স", autoTarget:"অটো টার্গেট", drag:"টানুন", speeds:"গতি", advLabel:"অ্যাডভেঞ্চার (ms)", craftLabel:"ক্রাফট (ms)", speedTip:"কম = দ্রুত", craftIdle:"অপেক্ষায়", craftEntering:"খুলছে", craftSolving:"সমাধান", craftExiting:"ফিরে", battleIdle:"অপেক্ষায়", battleEntering:"খুলছে", battleActive:"খেলায়", battleExiting:"ফিরে", healIdle:"অপেক্ষায়", healEntering:"খুলছে", healActive:"সুস্থ করা", healDone:"বিজয়", healExiting:"ফিরে", paused:"স্থগিত", done:"সম্পন্ন", noResources:"সম্পদ নেই"} }
 };
+const savedPrefs = loadPrefs();
 
 // ── State Variables ──
 let advInterval = null, clkInterval = null, clkCount = 0;
 let advOn = false, crOn = false, btOn = false, hlOn = false, autoDfOn = false, autoTgOn = false, clkRunning = false, dragging = false;
-let lang = "en", advDelay = 50, crDelay = 520, activeNav = null, isMinimized = false;
+let lang = (savedPrefs.lang && LANG_DATA[savedPrefs.lang]) ? savedPrefs.lang : "en";
+let advDelay = clampNumber(savedPrefs.advDelay, 10, 900, 50);
+let crDelay = clampNumber(savedPrefs.crDelay, 300, 800, 520);
+let activeNav = null, isMinimized = !!savedPrefs.isMinimized;
 
 const CS = { IDLE:0, ENTERING:1, SOLVING:2, EXITING:3, WAITING:4 };
 let crState = CS.IDLE, crTimer = null, crBusy = false, crTotalWait = 0, crWaitStart = 0;
@@ -68,6 +75,7 @@ let hlState = HS.IDLE, hlTimer = null, hlBusy = false, hlTotalWait = 0, hlWaitSt
 
 let crIconEl, crTextEl, btIconEl, btTextEl, hlIconEl, hlTextEl, autoDfIconEl, autoDfTextEl, autoTgIconEl, autoTgTextEl;
 let originalWidth = null, mouseLockerInterval = null, tgInterval = null;
+let statusOverrideText = "", statusOverrideUntil = 0;
 
 // ── Helpers ──
 function hd(b) { return b + (Math.random() * 2 - 1) * b * 0.15; }
@@ -76,6 +84,83 @@ function tx(k) { return LANG_DATA[lang].t[k] || k; }
 function fmtTime(s) { return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`; }
 function setText(el, v) { if (el && el.textContent !== v) el.textContent = v; }
 function setCSS(el, p, v) { if (el && el.style[p] !== v) el.style[p] = v; }
+function clampNumber(value, min, max, fallback) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, Math.round(n)));
+}
+function loadPrefs() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch (e) { return {}; }
+}
+function savePrefs(patch) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...loadPrefs(), ...patch })); }
+    catch (e) {}
+}
+function getSavedGuiPosition() {
+    return {
+        left: clampNumber(savedPrefs.guiLeft, 0, Math.max(0, window.innerWidth - 80), DEFAULT_GUI_POS.left),
+        top: clampNumber(savedPrefs.guiTop, 0, Math.max(0, window.innerHeight - 80), DEFAULT_GUI_POS.top)
+    };
+}
+function saveGuiPosition(gui) {
+    if (!gui) return;
+    const left = parseInt(gui.style.left);
+    const top = parseInt(gui.style.top);
+    savePrefs({
+        guiLeft: Number.isFinite(left) ? left : (gui.offsetLeft || DEFAULT_GUI_POS.left),
+        guiTop: Number.isFinite(top) ? top : (gui.offsetTop || DEFAULT_GUI_POS.top)
+    });
+}
+function setGuiStatus(text) {
+    setText(document.getElementById("guiStatus"), text);
+}
+function flashGuiStatus(text, ms = 1600) {
+    statusOverrideText = text;
+    statusOverrideUntil = Date.now() + ms;
+    setGuiStatus(text);
+}
+function updateGuiStatus() {
+    if (statusOverrideText && Date.now() < statusOverrideUntil) { setGuiStatus(statusOverrideText); return; }
+    statusOverrideText = "";
+    if (getResourcePopup()) { setGuiStatus(tx("noResources")); return; }
+    const active = [];
+    if (advOn) active.push(tx("adventure"));
+    if (crOn) active.push(tx("craft"));
+    if (btOn) active.push(tx("battle"));
+    if (hlOn) active.push(tx("heal"));
+    if (autoDfOn) active.push(tx("autoDefence"));
+    if (autoTgOn) active.push(tx("autoTarget"));
+    setGuiStatus(active.length ? `Active: ${active.join(", ")}` : "Ready");
+}
+function resetGuiPosition() {
+    const gui = document.getElementById("meadowAutoGUI");
+    if (!gui) return;
+    gui.style.left = DEFAULT_GUI_POS.left + "px";
+    gui.style.top = DEFAULT_GUI_POS.top + "px";
+    savePrefs({ guiLeft: DEFAULT_GUI_POS.left, guiTop: DEFAULT_GUI_POS.top });
+    flashGuiStatus("Position reset");
+}
+function stopClicker() {
+    clearInterval(clkInterval);
+    clkInterval = null;
+    clkRunning = false;
+    clkCount = 0;
+    const btn = document.getElementById("wgBtn");
+    if (!btn) return;
+    btn.style.opacity = "1";
+    btn.style.transition = "all 0.2s";
+    btn.style.background = "#f5c400";
+    btn.style.color = "#1a1a1a";
+    setText(btn.querySelector(".btnText"), tx("wrongGame"));
+}
+function stopAllFeatures() {
+    advOn = crOn = btOn = hlOn = autoDfOn = autoTgOn = false;
+    stopAdv(); stopCraft(); stopBattle(); stopHeal(); stopAutoDf(); stopAutoTarget(); stopClicker();
+    activeNav = null;
+    renderAdv(); renderCraft(); renderBattle(); renderHeal(); renderAutoDf(); renderAutoTg();
+    flashGuiStatus("All stopped");
+}
 
 function sendKey(key) {
     document.dispatchEvent(new KeyboardEvent("keydown", {key, code:key, bubbles:true, cancelable:true}));
@@ -376,7 +461,7 @@ function startAutoDf() {
     }, 16);
 }
 function stopAutoDf() {
-    if (originalWidth) { Object.defineProperty(window, 'innerWidth', { get: function() { return originalWidth; }, configurable: true }); window.dispatchEvent(new Event('resize')); }
+    if (originalWidth) { Object.defineProperty(window, 'innerWidth', { get: function() { return originalWidth; }, configurable: true }); originalWidth = null; window.dispatchEvent(new Event('resize')); }
     if (mouseLockerInterval) { clearInterval(mouseLockerInterval); mouseLockerInterval = null; }
 }
 
@@ -624,6 +709,14 @@ function do500Clicks() {
 // ════════════════════════════════════════════
 // ── RENDER ──
 // ════════════════════════════════════════════
+function renderAdv() {
+    const btn = document.getElementById("advBtn"); if (!btn) return;
+    const img = btn.querySelector("img"), txt = btn.querySelector(".btnText");
+    setText(txt, tx("adventure"));
+    if (advOn) { setCSS(img,"filter","none"); setCSS(btn,"background","#00c78b"); setCSS(btn,"color","#1a1a1a"); }
+    else { setCSS(img,"filter","invert(1)"); setCSS(btn,"background","#1a1a1a"); setCSS(btn,"color","white"); }
+}
+
 function renderCraft() {
     const btn = document.getElementById("craftBtn"); if (!btn || !crIconEl || !crTextEl) return;
     if (!crOn) { setText(crTextEl, tx("craft")); setCSS(crIconEl,"filter","invert(1)"); setCSS(btn,"background","#1a1a1a"); setCSS(btn,"color","white"); return; }
@@ -715,7 +808,7 @@ function showLanguageModal(isFirstTime) {
     document.body.appendChild(modal);
     modal.querySelectorAll('.lang-sel-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            lang = btn.getAttribute('data-lang'); modal.remove();
+            lang = btn.getAttribute('data-lang'); savePrefs({ lang }); modal.remove();
             if (isFirstTime) { createMainGUI(); } else { const m = document.getElementById("meadowAutoGUI"); if(m) m.style.display = "block"; updateLang(); }
         });
         btn.addEventListener('mouseover', () => btn.style.background = "#00c78b");
@@ -724,8 +817,9 @@ function showLanguageModal(isFirstTime) {
 }
 
 function createMainGUI() {
+    const pos = getSavedGuiPosition();
     const gui = document.createElement("div"); gui.id = "meadowAutoGUI";
-    gui.style.cssText = "position:fixed;top:100px;left:40px;z-index:999999;width:240px;background:#f8f1e3;border:4px solid #1a1a1a;border-radius:10px;box-shadow:6px 6px 0 #1a1a1a;font-family:system-ui,sans-serif;color:#1a1a1a;padding:10px;user-select:none;";
+    gui.style.cssText = `position:fixed;top:${pos.top}px;left:${pos.left}px;z-index:999999;width:240px;background:#f8f1e3;border:4px solid #1a1a1a;border-radius:10px;box-shadow:6px 6px 0 #1a1a1a;font-family:system-ui,sans-serif;color:#1a1a1a;padding:10px;user-select:none;`;
 
     const header = document.createElement("div");
     header.id = "dragHeader";
@@ -740,9 +834,13 @@ function createMainGUI() {
     gui.appendChild(header);
 
     const content = document.createElement("div"); content.id = "guiContent";
+    const versionLine = document.createElement("div"); versionLine.id = "scriptVersion"; versionLine.textContent = `Script v${SCRIPT_VERSION}`;
+    versionLine.style.cssText = "text-align:center;font-size:10px;font-weight:bold;opacity:.65;margin-bottom:3px;";
     const dragHint = document.createElement("div"); dragHint.id = "dragHint"; dragHint.style.cssText = "text-align:center;font-size:11px;opacity:.75;margin-bottom:10px;";
+    const statusLine = document.createElement("div"); statusLine.id = "guiStatus"; statusLine.textContent = "Ready";
+    statusLine.style.cssText = "text-align:center;font-size:11px;font-weight:bold;background:#1a1a1a;color:#00c78b;border-radius:6px;padding:5px;margin-bottom:8px;white-space:normal;line-height:1.25;";
     const btnBox = document.createElement("div"); btnBox.id = "btnBox"; btnBox.style.cssText = "max-height:400px;overflow-y:auto;padding:0 2px;";
-    content.appendChild(dragHint); content.appendChild(btnBox);
+    content.appendChild(versionLine); content.appendChild(dragHint); content.appendChild(statusLine); content.appendChild(btnBox);
 
     const settingsPanel = document.createElement("div"); settingsPanel.id = "settingsPanel";
     settingsPanel.style.cssText = "display:none;margin-top:8px;padding:12px;background:#e8e0d3;border:2px solid #1a1a1a;border-radius:6px;";
@@ -776,6 +874,9 @@ function createMainGUI() {
     const speedTip = document.createElement("div"); speedTip.id = "speedTip";
     speedTip.style.cssText = "text-align:center;margin-top:10px;font-size:10px;opacity:.7;";
     settingsPanel.appendChild(speedTip);
+    const resetPosBtn = document.createElement("button"); resetPosBtn.id = "resetPositionBtn"; resetPosBtn.textContent = "Reset Position";
+    resetPosBtn.style.cssText = "width:100%;margin-top:10px;padding:8px;border:2px solid #1a1a1a;border-radius:6px;background:#fff;color:#1a1a1a;font-weight:bold;cursor:pointer;";
+    settingsPanel.appendChild(resetPosBtn);
     content.appendChild(settingsPanel);
     gui.appendChild(content);
     document.body.appendChild(gui);
@@ -783,13 +884,16 @@ function createMainGUI() {
     advSlider.addEventListener("input", e => {
         advDelay = parseInt(e.target.value);
         setText(advValSpan, String(advDelay));
+        savePrefs({ advDelay });
         if (advOn) startAdv();
     });
     crSlider.addEventListener("input", e => {
         crDelay = parseInt(e.target.value);
         setText(crValSpan, String(crDelay));
+        savePrefs({ crDelay });
         if (crOn) startCraft();
     });
+    resetPosBtn.addEventListener("click", resetGuiPosition);
 
     const adv    = makeBtn("advBtn",    ICONS.adventure, btnBox); adv.btn.style.minHeight = "auto";
     const craft  = makeBtn("craftBtn",  ICONS.craft,     btnBox); crIconEl = craft.img; crTextEl = craft.span;
@@ -799,6 +903,9 @@ function createMainGUI() {
     const autoDf = makeBtn("autoDfBtn", ICONS.battle,    btnBox); autoDfIconEl = autoDf.img; autoDfTextEl = autoDf.span;
     const autoTg = makeBtn("autoTgBtn", ICONS.craft,     btnBox); autoTgIconEl = autoTg.img; autoTgTextEl = autoTg.span;
     const wg     = makeBtn("wgBtn",     ICONS.wrongGame, btnBox); wg.btn.style.minHeight = "auto"; wg.btn.style.background = "#f5c400"; wg.btn.style.color = "#1a1a1a"; wg.img.style.filter = "none";
+    const stopAllBtn = document.createElement("button"); stopAllBtn.id = "stopAllBtn"; stopAllBtn.textContent = "Stop All";
+    stopAllBtn.style.cssText = "width:100%;padding:10px;margin:4px 0 6px 0;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;background:#d93025;color:white;box-shadow:0 2px 0 #1a1a1a;";
+    btnBox.appendChild(stopAllBtn);
 
     let isDragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
 
@@ -826,6 +933,7 @@ function createMainGUI() {
         if (!isDragging || !e.isTrusted) return;
         isDragging = false; dragging = false;
         header.style.cursor = "grab";
+        saveGuiPosition(gui);
     });
 
     document.getElementById("langFlagBtn").addEventListener("click", () => showLanguageModal(false));
@@ -836,6 +944,7 @@ function createMainGUI() {
         e.stopPropagation(); isMinimized = !isMinimized;
         if (isMinimized) { content.style.display = "none"; this.innerText = "+"; gui.style.paddingBottom = "0"; }
         else { content.style.display = "block"; this.innerText = "−"; gui.style.paddingBottom = "10px"; }
+        savePrefs({ isMinimized });
     });
 
     document.getElementById("settingsBtn").addEventListener("click", function(e) {
@@ -843,17 +952,24 @@ function createMainGUI() {
         settingsPanel.style.display = settingsPanel.style.display === "none" ? "block" : "none";
     });
 
-    adv.btn.addEventListener("click",   () => { advOn = !advOn; setCSS(adv.img,"filter",advOn?"none":"invert(1)"); setCSS(adv.btn,"background",advOn?"#00c78b":"#1a1a1a"); setCSS(adv.btn,"color",advOn?"#1a1a1a":"white"); advOn ? startAdv() : stopAdv(); });
+    adv.btn.addEventListener("click",   () => { advOn = !advOn; advOn ? startAdv() : stopAdv(); renderAdv(); updateGuiStatus(); });
     craft.btn.addEventListener("click", () => { crOn = !crOn;   crOn   ? startCraft()       : stopCraft(); });
     battle.btn.addEventListener("click",() => { btOn = !btOn;   btOn   ? startBattle()      : stopBattle(); });
     heal.btn.addEventListener("click",  () => { hlOn = !hlOn;   hlOn   ? startHeal()        : stopHeal(); });
     autoDf.btn.addEventListener("click",() => { autoDfOn = !autoDfOn; autoDfOn ? startAutoDf()    : stopAutoDf(); });
     autoTg.btn.addEventListener("click",() => { autoTgOn = !autoTgOn; autoTgOn ? startAutoTarget() : stopAutoTarget(); });
     wg.btn.addEventListener("click", do500Clicks);
+    stopAllBtn.addEventListener("click", stopAllFeatures);
+
+    if (isMinimized) {
+        content.style.display = "none";
+        document.getElementById("minToggleBtn").innerText = "+";
+        gui.style.paddingBottom = "0";
+    }
 
     updateLang();
     window._renderInterval = setInterval(() => {
-        renderCraft(); renderBattle(); renderHeal(); renderAutoDf(); renderAutoTg();
+        renderAdv(); renderCraft(); renderBattle(); renderHeal(); renderAutoDf(); renderAutoTg(); updateGuiStatus();
     }, 200);
 }
 
@@ -861,11 +977,13 @@ showLanguageModal(true);
 
 window._meadowCleanup = () => {
     stopAdv(); stopCraft(); stopBattle(); stopHeal(); stopAutoDf(); stopAutoTarget();
-    clearInterval(clkInterval);
+    stopClicker();
     if (window._renderInterval) clearInterval(window._renderInterval);
     crOn = advOn = btOn = hlOn = autoDfOn = autoTgOn = false;
     const g = document.getElementById("meadowAutoGUI"); if (g) g.remove();
     const l = document.getElementById("meadowLangModal"); if (l) l.remove();
 };
 window.stopMeadowScript = window._meadowCleanup;
+window.stopMeadowAll = stopAllFeatures;
+window.resetMeadowGUIPosition = resetGuiPosition;
 })();

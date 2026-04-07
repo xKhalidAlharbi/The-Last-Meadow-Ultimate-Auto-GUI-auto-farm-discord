@@ -74,8 +74,17 @@ Use this when you want the repo version without manually recopying the full scri
 - `Auto Defence`: helps with the defence sequence while the relevant game is active.
 - `Auto Target`: keeps the target centered and clicks it automatically.
 - `Wrong Game`: runs the rapid click helper for the alternate click-based game.
+- `Stop All`: stops all running automation loops at once.
+- `Reset Position`: moves the GUI back to the default screen position from the settings panel.
 - `Adventure (ms)`: lower is faster for the Adventure loop.
 - `Craft (ms)`: adjusts the timing used by the Craft loop.
+- The script remembers language, GUI position, minimized state, and speed slider values in local storage.
+
+## Console Helpers
+
+- `stopMeadowScript()`: stops the script and removes the GUI.
+- `stopMeadowAll()`: stops active automation without removing the GUI.
+- `resetMeadowGUIPosition()`: moves the GUI back to its default position.
 
 ## Updating
 

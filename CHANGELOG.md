@@ -2,6 +2,10 @@
 
 This project does not use tagged releases yet. Until it does, this file records the visible repository history from git commits.
 
+## Unreleased
+
+- Added GUI version label, saved preferences, Stop All, and Reset Position controls on the testing branch.
+
 ## 2026-04-07
 
 - `4e7a178` Fixed the auto-loader URL to use the fork's jsDelivr path.

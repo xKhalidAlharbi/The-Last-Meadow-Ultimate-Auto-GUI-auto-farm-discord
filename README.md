@@ -19,6 +19,8 @@ It keeps the fast GUI workflow from the original release, but the source now liv
 - **Auto Target:** Locks and clicks the target automatically.
 - **Lightning Fast Crafting:** Solves crafting sequences through the GUI script.
 - **Adventure Auto Loop:** Adjustable speed down to very low delay values.
+- **Stop All Control:** Quickly shuts down every running automation loop.
+- **Saved Preferences:** Remembers language, speed sliders, minimized state, and GUI position.
 - **Separated Source File:** The main script is now stored in [Script.js](./Script.js).
 
 ---
@@ -93,6 +95,9 @@ Full history is also available in [CHANGELOG.md](./CHANGELOG.md).
 
 <details>
 <summary>Show full changelog</summary>
+
+#### Unreleased
+- Added GUI version label, saved preferences, Stop All, and Reset Position controls on the testing branch.
 
 #### 2026-04-07
 - `4e7a178` Fixed the auto-loader URL to use the fork's jsDelivr path.
