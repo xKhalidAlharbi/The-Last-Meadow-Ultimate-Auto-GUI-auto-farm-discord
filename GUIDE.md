@@ -19,7 +19,7 @@ Use the README for the fast path and this guide for a little more detail.
 This loader pulls the latest `Script.js` from the repository each time you run it:
 
 ```javascript
-await fetch("https://cdn.jsdelivr.net/gh/codex981/The-Last-Meadow-Ultimate-Auto-GUI-auto-farm-discord@main/Script.js")
+await fetch("https://cdn.jsdelivr.net/gh/xKhalidAlharbi/The-Last-Meadow-Ultimate-Auto-GUI-auto-farm-discord@main/Script.js")
   .then((response) => response.text())
   .then((code) => (0, eval)(code));
 ```

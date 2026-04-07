@@ -30,7 +30,7 @@ If you are using an older version, refresh Discord first.
 Paste this into the console to always load the latest `Script.js` from this repository:
 
 ```javascript
-await fetch("https://cdn.jsdelivr.net/gh/codex981/The-Last-Meadow-Ultimate-Auto-GUI-auto-farm-discord@main/Script.js")
+await fetch("https://cdn.jsdelivr.net/gh/xKhalidAlharbi/The-Last-Meadow-Ultimate-Auto-GUI-auto-farm-discord@main/Script.js")
   .then((response) => response.text())
   .then((code) => (0, eval)(code));
 ```
