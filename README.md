@@ -1,5 +1,13 @@
 # 🌿 The Last Meadow - Ultimate Auto GUI (auto farm)
 
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/xKhalidAlharbi/The-Last-Meadow-Ultimate-Auto-GUI-auto-farm-discord?style=for-the-badge&color=orange" alt="License" /></a>
+  <a href="https://github.com/xKhalidAlharbi/The-Last-Meadow-Ultimate-Auto-GUI-auto-farm-discord/commits/main"><img src="https://img.shields.io/github/last-commit/xKhalidAlharbi/The-Last-Meadow-Ultimate-Auto-GUI-auto-farm-discord/main?style=for-the-badge&label=Last%20Update" alt="Last update" /></a>
+  <a href="Script.js"><img src="https://img.shields.io/badge/Script-JavaScript-f7df1e?style=for-the-badge&logo=javascript&logoColor=black" alt="Script: JavaScript" /></a>
+  <a href="https://discord.com/"><img src="https://img.shields.io/badge/Discord-Desktop%20Only-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord desktop only" /></a>
+  <a href="https://www.jsdelivr.com/package/gh/xKhalidAlharbi/The-Last-Meadow-Ultimate-Auto-GUI-auto-farm-discord"><img src="https://img.shields.io/badge/Loader-jsDelivr-E84D3D?style=for-the-badge&logo=jsdelivr&logoColor=white" alt="Loader: jsDelivr" /></a>
+</p>
+
 This is the **main automation script** for the Discord mini-game "The Last Meadow".  
 It keeps the fast GUI workflow from the original release, but the source now lives in a separate file so the repository is easier to maintain.
 
